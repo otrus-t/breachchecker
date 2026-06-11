@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PassForge — see your password the way a cracker does</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b0f;
+    --bg-2:#0d0f15;
+    --panel:#13151d;
+    --panel-2:#171a24;
+    --line:rgba(255,255,255,.07);
+    --line-strong:rgba(255,255,255,.13);
+    --ink:#e9ebf2;
+    --ink-dim:#9298a8;
+    --ink-faint:#5b6171;
+    --weak:#ff4d5e;
+    --poor:#ff7a45;
+    --fair:#ffc53d;
+    --good:#8ed94f;
+    --strong:#34e3c5;
+    --accent:#34e3c5;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 540px at 84% -10%, rgba(52,227,197,.07), transparent 60%),
+      radial-gradient(900px 500px at 4% 8%, rgba(255,77,94,.06), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--disp);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px);
+    background-size:100% 3px;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:34px 20px 90px;position:relative;z-index:1}
+
+  /* header */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:8px}
+  .brand{display:flex;align-items:center;gap:13px}
+  .glyph{
+    width:42px;height:42px;border-radius:11px;flex:none;
+    background:linear-gradient(150deg,#1c2130,#0e1018);
+    border:1px solid var(--line-strong);
+    display:grid;place-items:center;
+    box-shadow:0 0 0 1px rgba(52,227,197,.08), 0 10px 30px -12px rgba(52,227,197,.35);
+  }
+  .glyph svg{width:21px;height:21px}
+  h1{font-size:25px;font-weight:700;letter-spacing:-.4px;margin:0;line-height:1}
+  h1 .dim{color:var(--ink-faint);font-weight:500}
+  .tagline{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);letter-spacing:.3px;margin-top:5px}
+  .privacy{
+    font-family:var(--mono);font-size:11px;color:var(--strong);
+    border:1px solid rgba(52,227,197,.25);background:rgba(52,227,197,.05);
+    padding:7px 11px;border-radius:8px;display:flex;align-items:center;gap:7px;
+  }
+  .privacy .dot{width:6px;height:6px;border-radius:50%;background:var(--strong);box-shadow:0 0 9px var(--strong);animation:pulse 2.4s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+
+  /* tabs */
+  nav.tabs{display:flex;gap:4px;margin:26px 0 20px;border:1px solid var(--line);background:var(--bg-2);border-radius:12px;padding:5px}
+  .tab{
+    flex:1;appearance:none;border:0;cursor:pointer;font-family:var(--mono);font-size:12.5px;font-weight:500;
+    color:var(--ink-dim);background:transparent;padding:10px 8px;border-radius:8px;letter-spacing:.2px;
+    transition:.15s;display:flex;align-items:center;justify-content:center;gap:7px;
+  }
+  .tab svg{width:14px;height:14px;opacity:.8}
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--panel-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-strong)}
+  .tab.active svg{opacity:1}
+
+  .panel{display:none;animation:fade .35s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .card + .card{margin-top:16px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-faint);margin:0 0 4px}
+  .lead{font-size:14px;color:var(--ink-dim);margin:0 0 18px}
+
+  /* password input */
+  .field{position:relative;margin-bottom:6px}
+  .field input[type=text],.field input[type=password]{
+    width:100%;font-family:var(--mono);font-size:18px;letter-spacing:1px;color:var(--ink);
+    background:#0b0d13;border:1px solid var(--line-strong);border-radius:12px;
+    padding:18px 56px 18px 18px;outline:none;transition:.18s;
+  }
+  .field input::placeholder{color:var(--ink-faint);letter-spacing:.5px}
+  .field input:focus{border-color:rgba(52,227,197,.55);box-shadow:0 0 0 3px rgba(52,227,197,.12)}
+  .eye{
+    position:absolute;top:50%;right:9px;transform:translateY(-50%);
+    width:40px;height:40px;border-radius:9px;border:1px solid transparent;background:transparent;
+    cursor:pointer;color:var(--ink-dim);display:grid;place-items:center;transition:.15s;
+  }
+  .eye:hover{color:var(--ink);background:rgba(255,255,255,.05)}
+  .eye svg{width:20px;height:20px}
+
+  /* strength meter */
+  .meter{display:flex;gap:5px;margin:18px 0 10px}
+  .seg{height:7px;flex:1;border-radius:4px;background:#1c2030;transition:.3s}
+  .verdict{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .verdict .label{font-size:19px;font-weight:600;letter-spacing:-.2px}
+  .verdict .entropy{font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+  .verdict .entropy b{color:var(--ink);font-weight:500}
+
+  /* crack grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .scenario{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:14px 15px;position:relative;overflow:hidden}
+  .scenario .who{font-family:var(--mono);font-size:11px;color:var(--ink-dim);display:flex;align-items:center;gap:7px;margin-bottom:8px}
+  .scenario .who .ic{width:7px;height:7px;border-radius:2px;flex:none}
+  .scenario .time{font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:-.3px;line-height:1.15;word-break:break-word}
+  .scenario .rate{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-top:6px}
+
+  .flag{
+    margin-top:16px;display:none;align-items:flex-start;gap:11px;
+    border-radius:12px;padding:13px 15px;font-size:13.5px;
+    border:1px solid rgba(255,77,94,.35);background:rgba(255,77,94,.07);color:#ffd2d6;
+  }
+  .flag.show{display:flex}
+  .flag svg{width:18px;height:18px;flex:none;margin-top:1px;color:var(--weak)}
+  .flag b{color:#fff}
+  .flag code{font-family:var(--mono);background:rgba(0,0,0,.35);padding:1px 6px;border-radius:5px;color:#fff}
+
+  /* composition + tips */
+  .breakdown{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+  .chip{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--line);color:var(--ink-faint);display:flex;align-items:center;gap:6px}
+  .chip.on{color:var(--ink);border-color:var(--line-strong)}
+  .chip .b{width:6px;height:6px;border-radius:50%;background:#2a2f40}
+  .chip.on .b{background:var(--good)}
+  .tips{margin-top:16px;list-style:none;padding:0;display:grid;gap:8px}
+  .tips li{font-size:13px;color:var(--ink-dim);display:flex;gap:9px;align-items:flex-start}
+  .tips li svg{width:15px;height:15px;flex:none;margin-top:3px;color:var(--fair)}
+  .empty-tips{color:var(--ink-faint);font-family:var(--mono);font-size:12px}
+
+  /* generator */
+  .controls{display:grid;gap:16px}
+  .seg-toggle{display:flex;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:4px;width:fit-content}
+  .seg-toggle button{appearance:none;border:0;background:transparent;color:var(--ink-dim);font-family:var(--mono);font-size:12px;padding:8px 16px;border-radius:7px;cursor:pointer;transition:.15s}
+  .seg-toggle button.active{background:var(--panel-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-strong)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .row label{font-size:13.5px;color:var(--ink-dim)}
+  .lenval{font-family:var(--mono);color:var(--ink);font-size:14px;min-width:26px;text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:4px;background:#222636;flex:1;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 0 4px rgba(52,227,197,.15)}
+  input[type=range]::-moz-range-thumb{width:17px;height:17px;border:0;border-radius:50%;background:var(--accent);cursor:pointer}
+  .opts{display:flex;flex-wrap:wrap;gap:9px}
+  .opt{font-family:var(--mono);font-size:12px;color:var(--ink-dim);border:1px solid var(--line);background:var(--bg-2);padding:8px 12px;border-radius:9px;cursor:pointer;user-select:none;transition:.15s;display:flex;align-items:center;gap:8px}
+  .opt input{display:none}
+  .opt .box{width:14px;height:14px;border-radius:4px;border:1px solid var(--line-strong);display:grid;place-items:center}
+  .opt.checked{color:var(--ink);border-color:var(--line-strong)}
+  .opt.checked .box{background:var(--accent);border-color:var(--accent)}
+  .opt.checked .box svg{width:10px;height:10px;color:#06231f}
+  .opt .box svg{display:none}
+  .opt.checked .box svg{display:block}
+
+  .output{margin-top:6px;display:flex;align-items:center;gap:10px;background:#0b0d13;border:1px solid var(--line-strong);border-radius:12px;padding:15px 16px}
+  .output .gen{flex:1;font-family:var(--mono);font-size:17px;color:var(--ink);word-break:break-all;letter-spacing:.5px}
+  .iconbtn{appearance:none;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);width:40px;height:40px;border-radius:9px;display:grid;place-items:center;cursor:pointer;flex:none;transition:.15s}
+  .iconbtn:hover{color:var(--ink);border-color:var(--line-strong)}
+  .iconbtn svg{width:18px;height:18px}
+  .gen-meta{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-top:10px}
+  .gen-meta b{color:var(--strong);font-weight:500}
+
+  /* wordlist check */
+  .result-line{margin-top:18px;font-family:var(--mono);font-size:14px;min-height:24px}
+  .result-line.hit{color:var(--weak)}
+  .result-line.safe{color:var(--strong)}
+  .result-line.idle{color:var(--ink-faint)}
+  .rank{display:inline-block;background:rgba(255,77,94,.12);border:1px solid rgba(255,77,94,.3);color:#ffd2d6;border-radius:6px;padding:1px 8px;margin-left:4px}
+  .wl-note{font-size:12.5px;color:var(--ink-dim);margin-top:14px;line-height:1.6}
+
+  /* password breach line (analyzer) */
+  .pwned{display:flex;align-items:center;gap:9px;margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);line-height:1.45}
+  .pwned-ic{width:9px;height:9px;border-radius:50%;background:#2a2f40;flex:none}
+  .pwned.checking .pwned-ic{background:var(--fair);animation:pulse 1s infinite}
+  .pwned.safe{color:var(--good)} .pwned.safe .pwned-ic{background:var(--good);box-shadow:0 0 8px var(--good)}
+  .pwned.bad{color:var(--weak)} .pwned.bad .pwned-ic{background:var(--weak);box-shadow:0 0 8px var(--weak)}
+  .pwned b{color:inherit}
+
+  /* breach tab */
+  .disclosure{display:flex;gap:11px;align-items:flex-start;border:1px solid rgba(255,197,61,.28);background:rgba(255,197,61,.06);color:#ffe6ad;border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.5}
+  .disclosure svg{width:18px;height:18px;flex:none;margin-top:1px;color:var(--fair)}
+  .disclosure b{color:#fff}
+  .scan-btn{margin-top:14px;width:100%;padding:14px;font-size:13px;background:var(--panel-2);border-color:var(--line-strong)}
+  .scan-btn:hover:not(:disabled){border-color:var(--accent);color:#fff}
+  .scan-btn:disabled{opacity:.55;cursor:default}
+
+  .b-banner{margin-top:20px;border-radius:13px;padding:18px;display:flex;gap:14px;align-items:center}
+  .b-banner svg{width:30px;height:30px;flex:none}
+  .b-banner .bt{font-size:17px;font-weight:600;letter-spacing:-.2px;margin-bottom:3px}
+  .b-banner .bs{font-size:13px;line-height:1.5}
+  .b-banner.clear{border:1px solid rgba(52,227,197,.35);background:rgba(52,227,197,.07)}
+  .b-banner.clear svg,.b-banner.clear .bt{color:var(--strong)}
+  .b-banner.clear .bs{color:#b8f3e9}
+  .b-banner.hit{border:1px solid rgba(255,77,94,.4);background:rgba(255,77,94,.08)}
+  .b-banner.hit svg,.b-banner.hit .bt{color:var(--weak)}
+  .b-banner.hit .bs{color:#ffd2d6}
+  .b-banner .em{font-family:var(--mono);font-weight:500;color:#fff}
+
+  .b-stats{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .b-stat{flex:1;min-width:120px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .b-stat .n{font-family:var(--mono);font-size:21px;font-weight:700;letter-spacing:-.4px}
+  .b-stat .l{font-size:11px;color:var(--ink-dim);margin-top:3px}
+
+  .b-sub{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-faint);margin:24px 0 12px}
+  .b-list{display:grid;gap:11px}
+  .b-card{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .b-card .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .b-card .name{font-weight:600;font-size:15px;letter-spacing:-.2px}
+  .b-card .meta{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+  .b-card .desc{font-size:12.5px;color:var(--ink-dim);margin:9px 0 0;line-height:1.5}
+  .b-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .b-tag{font-family:var(--mono);font-size:10.5px;padding:4px 9px;border-radius:20px;border:1px solid var(--line);color:var(--ink-dim)}
+  .b-tag.pw{border-color:rgba(255,77,94,.45);background:rgba(255,77,94,.1);color:#ffb3ba}
+  .b-pwflag{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--weak);margin-top:11px;font-weight:500}
+  .b-pwflag svg{width:13px;height:13px}
+  .b-err{margin-top:18px;font-family:var(--mono);font-size:12.5px;color:var(--fair);border:1px solid rgba(255,197,61,.25);background:rgba(255,197,61,.05);border-radius:11px;padding:13px 15px;line-height:1.55}
+  .b-loading{margin-top:20px;font-family:var(--mono);font-size:13px;color:var(--ink-dim);display:flex;align-items:center;gap:10px}
+  .b-loading .sp{width:15px;height:15px;border:2px solid var(--line-strong);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* quiz */
+  .q-counter{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:10px}
+  .question{font-size:17px;font-weight:600;margin:0 0 16px;letter-spacing:-.2px}
+  .answers{display:grid;gap:9px}
+  .answer{text-align:left;appearance:none;border:1px solid var(--line);background:var(--bg-2);color:var(--ink);font-family:var(--disp);font-size:14px;padding:14px 16px;border-radius:11px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:11px}
+  .answer:hover:not(:disabled){border-color:var(--line-strong);background:var(--panel-2)}
+  .answer .key{font-family:var(--mono);font-size:11px;color:var(--ink-faint);border:1px solid var(--line);border-radius:6px;width:22px;height:22px;display:grid;place-items:center;flex:none}
+  .answer.correct{border-color:rgba(52,227,197,.5);background:rgba(52,227,197,.08)}
+  .answer.correct .key{color:var(--strong);border-color:rgba(52,227,197,.5)}
+  .answer.wrong{border-color:rgba(255,77,94,.5);background:rgba(255,77,94,.08)}
+  .answer.wrong .key{color:var(--weak);border-color:rgba(255,77,94,.5)}
+  .answer:disabled{cursor:default}
+  .explain{margin-top:14px;font-size:13.5px;color:var(--ink-dim);border-left:2px solid var(--line-strong);padding:4px 0 4px 13px;display:none}
+  .explain.show{display:block}
+  .quiz-foot{display:flex;align-items:center;justify-content:space-between;margin-top:20px;gap:12px}
+  .btn{appearance:none;border:1px solid var(--line-strong);background:var(--panel-2);color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:11px 18px;border-radius:10px;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--accent);color:#fff}
+  .btn:disabled{opacity:.4;cursor:default}
+  .score{font-family:var(--mono);font-size:13px;color:var(--ink-dim)}
+  .score b{color:var(--strong)}
+
+  footer{text-align:center;margin-top:34px;font-family:var(--mono);font-size:11px;color:var(--ink-faint);line-height:1.7}
+  footer a{color:var(--ink-dim);text-decoration:none;border-bottom:1px solid var(--line)}
+
+  @media(max-width:560px){
+    .grid{grid-template-columns:1fr}
+    h1{font-size:21px}
+    .tab span{display:none}
+    .tab{padding:11px 6px}
+    .field input[type=text],.field input[type=password]{font-size:16px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="glyph" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="url(#g)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34e3c5"/><stop offset="1" stop-color="#ff4d5e"/></linearGradient></defs>
+          <rect x="4" y="10.5" width="16" height="9.5" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/><circle cx="12" cy="15" r="1.3"/>
+        </svg>
+      </div>
+      <div>
+        <h1>PassForge<span class="dim">.local</span></h1>
+        <div class="tagline">see your password the way a cracker does</div>
+      </div>
+    </div>
+    <div class="privacy"><span class="dot"></span> passwords analyzed locally · breach lookups are labelled</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="analyze">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>Analyze</span>
+    </button>
+    <button class="tab" data-tab="generate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v2m0 14v2m9-9h-2M5 12H3m13.5-6.5-1.4 1.4M7.9 16.1l-1.4 1.4m12 0-1.4-1.4M7.9 7.9 6.5 6.5"/><circle cx="12" cy="12" r="3.2"/></svg>
+      <span>Generate</span>
+    </button>
+    <button class="tab" data-tab="wordlist">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+      <span>Wordlist</span>
+    </button>
+    <button class="tab" data-tab="breach">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+      <span>Breach</span>
+    </button>
+    <button class="tab" data-tab="quiz">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-1 .6-1.6 1.2-1.6 2.4"/><circle cx="12" cy="18" r="0.6" fill="currentColor"/></svg>
+      <span>Quiz</span>
+    </button>
+  </nav>
+
+  <!-- ANALYZE -->
+  <section class="panel active" id="analyze">
+    <div class="card">
+      <p class="eyebrow">Strength analyzer</p>
+      <p class="lead">Start typing. The estimate updates with every keystroke — no button, no submit.</p>
+
+      <div class="field">
+        <input type="password" id="pw" placeholder="type a password to test…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button class="eye" id="eye" aria-label="Show password" type="button"></button>
+      </div>
+
+      <div class="meter" id="meter">
+        <div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+      </div>
+      <div class="verdict">
+        <span class="label" id="verdict-label" style="color:var(--ink-faint)">Waiting…</span>
+        <span class="entropy" id="entropy">entropy <b>0</b> bits · <b>0</b> chars</span>
+      </div>
+
+      <div class="pwned" id="pwned">
+        <span class="pwned-ic" id="pwned-ic"></span>
+        <span id="pwned-text">Breach check runs as you type — only the first 5 characters of your password's hash are sent.</span>
+      </div>
+
+      <div class="flag" id="flag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        <span id="flag-text"></span>
+      </div>
+
+      <div class="breakdown" id="breakdown"></div>
+
+      <ul class="tips" id="tips"><li class="empty-tips">tips will appear as you type</li></ul>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">Time to crack</p>
+      <p class="lead">Same password, four different attackers. The gap between them is the whole story.</p>
+      <div class="grid" id="grid">
+        <div class="scenario" data-k="throttled">
+          <div class="who"><span class="ic" style="background:var(--good)"></span>Online login (rate-limited)</div>
+          <div class="time" id="t-throttled">—</div>
+          <div class="rate">~100 guesses / sec · lockouts on</div>
+        </div>
+        <div class="scenario" data-k="online">
+          <div class="who"><span class="ic" style="background:var(--fair)"></span>Online (no throttling)</div>
+          <div class="time" id="t-online">—</div>
+          <div class="rate">~1 000 guesses / sec</div>
+        </div>
+        <div class="scenario" data-k="bcrypt">
+          <div class="who"><span class="ic" style="background:var(--poor)"></span>Stolen DB · slow hash (bcrypt)</div>
+          <div class="time" id="t-bcrypt">—</div>
+          <div class="rate">~20 000 guesses / sec · 1 GPU</div>
+        </div>
+        <div class="scenario" data-k="md5">
+          <div class="who"><span class="ic" style="background:var(--weak)"></span>Stolen DB · fast hash (MD5) · GPU rig</div>
+          <div class="time" id="t-md5">—</div>
+          <div class="rate">~1 trillion guesses / sec · hashcat</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GENERATE -->
+  <section class="panel" id="generate">
+    <div class="card">
+      <p class="eyebrow">Generator</p>
+      <p class="lead">Built with your browser's cryptographic randomness. Make one, then forge a new one.</p>
+
+      <div class="seg-toggle" id="gen-mode">
+        <button class="active" data-mode="random">random string</button>
+        <button data-mode="phrase">passphrase</button>
+      </div>
+
+      <div class="controls" style="margin-top:18px">
+        <div class="row" id="len-row">
+          <label id="len-label">Length</label>
+          <input type="range" id="len" min="6" max="64" value="20" />
+          <span class="lenval" id="len-val">20</span>
+        </div>
+
+        <div class="opts" id="char-opts">
+          <label class="opt checked"><input type="checkbox" id="o-lower" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="m4 12 5 5L20 6"/></svg></span>a–z</label>
+          <label class="opt checked"><input type="checkbox" id="o-upper" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="m4 12 5 5L20 6"/></svg></span>A–Z</label>
+          <label class="opt checked"><input type="checkbox" id="o-num" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="m4 12 5 5L20 6"/></svg></span>0–9</label>
+          <label class="opt checked"><input type="checkbox" id="o-sym" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="m4 12 5 5L20 6"/></svg></span>!@#$%</label>
+          <label class="opt"><input type="checkbox" id="o-amb"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="m4 12 5 5L20 6"/></svg></span>avoid look-alikes (Il1O0)</label>
+        </div>
+      </div>
+
+      <div class="output" style="margin-top:20px">
+        <span class="gen" id="gen-out">—</span>
+        <button class="iconbtn" id="gen-copy" aria-label="Copy" title="Copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        </button>
+        <button class="iconbtn" id="gen-new" aria-label="Regenerate" title="Forge new">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+        </button>
+      </div>
+      <div class="gen-meta" id="gen-meta">strength: <b id="gen-strength">—</b> · entropy <b id="gen-entropy">—</b> bits</div>
+    </div>
+  </section>
+
+  <!-- WORDLIST -->
+  <section class="panel" id="wordlist">
+    <div class="card">
+      <p class="eyebrow">Wordlist lookup</p>
+      <p class="lead">The real <code style="font-family:var(--mono);color:var(--ink-dim)">rockyou.txt</code> holds ~14 million leaked passwords. This page ships the most-used slice of it. If your password is in here, a cracker doesn't brute-force — they just read it off the list.</p>
+
+      <div class="field">
+        <input type="password" id="wl-pw" placeholder="check a password against the list…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button class="eye" id="wl-eye" aria-label="Show password" type="button"></button>
+      </div>
+
+      <div class="result-line idle" id="wl-result">— start typing to check</div>
+      <p class="wl-note">A match means it's been seen in real breaches and is in every cracker's first pass. "Not in this slice" only means it dodged the common list here — it can still be weak. Use the analyzer tab for the full picture.</p>
+    </div>
+  </section>
+
+  <!-- BREACH -->
+  <section class="panel" id="breach">
+    <div class="card">
+      <p class="eyebrow">Email breach check</p>
+      <p class="lead">See whether an email turns up in known data breaches — the real version of "dark web monitoring": a lookup against breaches already collected from past leaks. No webpage can scan the dark web live.</p>
+
+      <div class="disclosure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4m0-4h.01"/></svg>
+        <span>Unlike the password tools, this <b>sends the email</b> to XposedOrNot's breach database to look it up. Check your own address. Nothing is stored by this page.</span>
+      </div>
+
+      <div class="field" style="margin-top:16px">
+        <input type="email" id="bmail" placeholder="you@example.com" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button class="eye" id="bmail-eye" aria-label="Show email" type="button"></button>
+      </div>
+      <button class="btn scan-btn" id="bscan">Scan for breaches</button>
+
+      <div id="bresult"></div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="panel" id="quiz">
+    <div class="card">
+      <p class="eyebrow">Password sense check</p>
+      <div class="q-counter" id="q-counter">Question 1 / 6</div>
+      <h3 class="question" id="q-text">…</h3>
+      <div class="answers" id="q-answers"></div>
+      <div class="explain" id="q-explain"></div>
+      <div class="quiz-foot">
+        <span class="score" id="q-score">score <b>0</b> / 0</span>
+        <button class="btn" id="q-next" disabled>Next →</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    PassForge is an educational tool — it judges <b style="color:var(--ink-dim)">your own</b> passwords so you can make them stronger.<br>
+    Estimates are heuristics, not guarantees. Your keystrokes never leave this page.
+  </footer>
+</div>
+
+<script>
+/* ===================== shared icons ===================== */
+const EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_OFF = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 6.2A9.7 9.7 0 0 1 12 6c6.5 0 10.5 7 10.5 7a16 16 0 0 1-3 3.6M6.2 6.3A16 16 0 0 0 1.5 13s4 7 10.5 7a9.7 9.7 0 0 0 4.5-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m2 2 20 20"/></svg>`;
+
+function wireEye(inputId, btnId){
+  const inp=document.getElementById(inputId), btn=document.getElementById(btnId);
+  btn.innerHTML=EYE;
+  btn.addEventListener('click',()=>{
+    const show = inp.type==='password';
+    inp.type = show ? 'text':'password';
+    btn.innerHTML = show ? EYE_OFF : EYE;
+    btn.setAttribute('aria-label', show ? 'Hide password':'Show password');
+    inp.focus();
+  });
+}
+
+/* ===================== tabs ===================== */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+/* ===================== common passwords (rockyou top slice) ===================== */
+const COMMON = ["123456","password","123456789","12345678","12345","qwerty","123123","111111","abc123","1234567","password1","1234567890","123321","qwerty123","000000","iloveyou","1q2w3e4r","admin","qwertyuiop","monkey","dragon","123qwe","654321","555555","666666","777777","888888","999999","112233","987654321","sunshine","princess","football","baseball","letmein","welcome","login","master","hello","superman","batman","trustno1","whatever","shadow","michael","jordan","harley","ranger","hunter","buster","soccer","hockey","killer","george","sexy","andrew","charlie","thomas","robert","access","love","secret","summer","ginger","starwars","cheese","computer","internet","samsung","google","mustang","pokemon","pepper","banana","orange","purple","yellow","liverpool","chelsea","arsenal","barcelona","jennifer","jessica","ashley","amanda","nicole","daniel","matthew","joshua","tigger","freedom","ninja","azerty","123abc","qwe123","159753","1qaz2wsx","zxcvbnm","asdfghjkl","passw0rd","p@ssword","p@ssw0rd","admin123","root","toor","changeme","default","guest","test","test123","abcd1234","a1b2c3","football1","baseball1","master123","welcome1","monkey123","dragon123","696969","abcdef","123456a","qazwsx","michael1","soccer1","loveme","forever","angel","flower","hottie","babygirl","lovely","naruto","minecraft","fortnite","pokemon1","sparky","bandit","tucker","jordan23","fuckyou","asshole","blink182","metallica","nirvana","slipknot","greenday","linkinpark"];
+const COMMON_SET = new Set(COMMON);
+const COMMON_RANK = {}; COMMON.forEach((w,i)=>COMMON_RANK[w]=i+1);
+
+const WORDS_BASE = new Set(["password","welcome","dragon","monkey","shadow","master","login","admin","summer","winter","spring","autumn","football","baseball","soccer","hockey","princess","sunshine","superman","batman","computer","internet","letmein","secret","freedom","flower","angel","love","hello","ninja","google","samsung","liverpool","chelsea","arsenal","banana","orange","purple","yellow","jennifer","jessica","michael","jordan","charlie","thomas","robert","andrew","matthew","joshua","daniel"]);
+const LEET = {'@':'a','4':'a','8':'b','3':'e','6':'g','1':'i','0':'o','9':'g','5':'s','$':'s','7':'t','2':'z','+':'t','!':'i'};
+function deLeet(s){return s.toLowerCase().split('').map(c=>LEET[c]||c).join('');}
+
+/* ===================== crack-time math ===================== */
+const RATES = {throttled:100, online:1e3, bcrypt:2e4, md5:1e12};
+
+function charsetSize(pw){
+  let n=0;
+  if(/[a-z]/.test(pw)) n+=26;
+  if(/[A-Z]/.test(pw)) n+=26;
+  if(/[0-9]/.test(pw)) n+=10;
+  if(/[^a-zA-Z0-9]/.test(pw)) n+=33;
+  return n||1;
+}
+function entropyBits(pw){ return pw.length * Math.log2(charsetSize(pw)); }
+
+// detect "essentially a common password" (common, or common base + suffix/leet)
+function dictionaryHit(pw){
+  if(!pw) return null;
+  const low = pw.toLowerCase();
+  if(COMMON_SET.has(low)) return {type:'exact', rank:COMMON_RANK[low], base:low};
+  const deleeted = deLeet(pw);
+  if(COMMON_SET.has(deleeted)) return {type:'leet', base:deleeted};
+  // strip trailing digits/symbols  e.g. password123!  ->  password
+  const stripped = deleeted.replace(/[^a-z]+$/,'').replace(/^[^a-z]+/,'');
+  if(stripped.length>=4 && (COMMON_SET.has(stripped)||WORDS_BASE.has(stripped))) return {type:'mutation', base:stripped};
+  return null;
+}
+
+function humanTime(seconds){
+  if(seconds < 1) return 'instantly';
+  if(seconds < 60) return Math.max(1,Math.round(seconds))+' sec';
+  const U=[['min',60],['hour',3600],['day',86400],['month',2.628e6],['year',3.156e7]];
+  for(let i=U.length-1;i>=0;i--){
+    const v=seconds/U[i][1];
+    if(v>=1){
+      if(U[i][0]==='year' && v>=1000) return bigYears(v);
+      const r = v>=10 ? Math.round(v) : Math.round(v*10)/10;
+      return r+' '+U[i][0]+(r!==1?'s':'');
+    }
+  }
+}
+function bigYears(y){
+  const AGE_UNIVERSE = 1.38e10;
+  if(y > AGE_UNIVERSE*100) return 'eons';
+  const scales=[[1e15,'quadrillion'],[1e12,'trillion'],[1e9,'billion'],[1e6,'million'],[1e3,'thousand']];
+  for(const [s,name] of scales){
+    if(y>=s){const v=y/s; return (v>=100?Math.round(v):Math.round(v*10)/10)+' '+name+' yrs';}
+  }
+  return Math.round(y).toLocaleString()+' yrs';
+}
+
+/* ===================== analyzer ===================== */
+const pw=document.getElementById('pw');
+wireEye('pw','eye');
+
+const segs=[...document.querySelectorAll('#meter .seg')];
+const SCORE_COLOR=['var(--weak)','var(--poor)','var(--fair)','var(--good)','var(--strong)'];
+const SCORE_LABEL=['Very weak','Weak','Fair','Strong','Very strong'];
+
+function scoreFromEntropy(bits, dict){
+  if(dict) return 0;
+  if(bits<28) return 0;
+  if(bits<40) return 1;
+  if(bits<60) return 2;
+  if(bits<80) return 3;
+  return 4;
+}
+
+function analyze(){
+  const v = pw.value;
+  const len = v.length;
+  const dict = dictionaryHit(v);
+  let bits = entropyBits(v);
+  // if dictionary-based, entropy is effectively tiny
+  const effBits = dict ? Math.min(bits, 8) : bits;
+  const score = len===0 ? -1 : scoreFromEntropy(bits, dict);
+
+  // meter
+  segs.forEach((s,i)=> s.style.background = (score>=0 && i<=score)? SCORE_COLOR[score] : '#1c2030');
+
+  // verdict
+  const lab=document.getElementById('verdict-label');
+  if(len===0){ lab.textContent='Waiting…'; lab.style.color='var(--ink-faint)'; }
+  else { lab.textContent=SCORE_LABEL[score]; lab.style.color=SCORE_COLOR[score]; }
+  document.getElementById('entropy').innerHTML='entropy <b>'+(len?Math.round(effBits):0)+'</b> bits · <b>'+len+'</b> chars';
+
+  // crack times (use effective bits)
+  const combos = Math.pow(2, effBits)/2; // average guesses
+  ['throttled','online','bcrypt','md5'].forEach(k=>{
+    const el=document.getElementById('t-'+k);
+    if(len===0){ el.textContent='—'; el.style.color='var(--ink-faint)'; return; }
+    if(dict){ el.textContent = k==='md5'||k==='bcrypt'?'instantly':'seconds'; el.style.color='var(--weak)'; return; }
+    const secs = combos / RATES[k];
+    el.textContent = humanTime(secs);
+    el.style.color = secs<3600?'var(--weak)':secs<2.6e6?'var(--fair)':secs<3.156e9?'var(--good)':'var(--strong)';
+  });
+
+  // flag
+  const flag=document.getElementById('flag'), ft=document.getElementById('flag-text');
+  if(dict){
+    flag.classList.add('show');
+    if(dict.type==='exact') ft.innerHTML=`This is <b>#${dict.rank}</b> on the common-password list — it's literally in <code>rockyou.txt</code>. A cracker tries it in the first second.`;
+    else if(dict.type==='leet') ft.innerHTML=`Swapping letters for symbols (<code>${dict.base}</code> → leetspeak) doesn't help — crackers run those rules automatically.`;
+    else ft.innerHTML=`Built on the common word <code>${dict.base}</code>. Adding numbers or symbols on the end is the first rule every wordlist attack tries.`;
+  } else flag.classList.remove('show');
+
+  // composition
+  const bd=document.getElementById('breakdown');
+  const checks=[
+    ['a–z', /[a-z]/.test(v)],['A–Z', /[A-Z]/.test(v)],['0–9', /[0-9]/.test(v)],
+    ['symbol', /[^a-zA-Z0-9]/.test(v)],['12+ chars', len>=12],['16+ chars', len>=16]
+  ];
+  bd.innerHTML = len? checks.map(([t,on])=>`<span class="chip ${on?'on':''}"><span class="b"></span>${t}</span>`).join('') : '';
+
+  // tips
+  const tips=document.getElementById('tips'); const T=[];
+  if(len){
+    if(dict) T.push("Drop the dictionary word entirely — start from random characters or unrelated words.");
+    if(len<12) T.push("Length beats complexity. Aim for 12+ characters (16+ is comfortably safe).");
+    if(!/[A-Z]/.test(v)||!/[a-z]/.test(v)) T.push("Mix upper and lower case.");
+    if(!/[0-9]/.test(v)) T.push("Add a digit or two — somewhere other than the end.");
+    if(!/[^a-zA-Z0-9]/.test(v)) T.push("Throw in a symbol to widen the search space.");
+    if(/^(.)\1+$/.test(v)) T.push("Repeated single character — that's the easiest pattern there is.");
+    if(/(.)\1{2,}/.test(v)) T.push("Avoid runs of the same character (aaa, 111).");
+    if(/0123|1234|2345|3456|4567|5678|6789|abcd|qwert|asdf/i.test(v)) T.push("Sequences like 1234 / qwerty / abcd are in every cracking ruleset.");
+    if(T.length===0) T.push("Solid. Make sure it's unique to this account and stored in a password manager.");
+  }
+  tips.innerHTML = T.length
+    ? T.map(t=>`<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>${t}</li>`).join('')
+    : '<li class="empty-tips">tips will appear as you type</li>';
+}
+pw.addEventListener('input', analyze);
+analyze();
+
+/* ===================== generator ===================== */
+const SETS={lower:'abcdefghijklmnopqrstuvwxyz',upper:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',num:'0123456789',sym:'!@#$%^&*()-_=+[]{};:,.?'};
+const AMBIG=/[Il1O0]/g;
+const PHRASE_WORDS="anchor amber atlas basil beacon birch bison blaze bramble bronze cactus canyon cedar cipher cobalt comet copper coral cosmos cove cricket crimson cymbal delta dune ember falcon fern fjord flint forge garnet ginger glacier granite harbor hazel heron indigo ivory jade jasper jetty juniper kelp lagoon lantern larch lemon lichen lotus lunar maple marble meadow mica moss nectar nimbus oak ochre onyx opal orbit otter pebble petal pine pixel plume quartz quill quiver raven reef ripple rowan saffron sage scarlet shale slate solar spruce sterling stork summit talon tamarind tarn thistle thorn tide topaz totem tundra umber valley velvet vesper vine violet walnut willow zenith zephyr".split(' ');
+
+let genMode='random';
+const lenEl=document.getElementById('len'), lenVal=document.getElementById('len-val'), lenLabel=document.getElementById('len-label'), charOpts=document.getElementById('char-opts');
+const out=document.getElementById('gen-out');
+
+function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
+function pick(str){return str[randInt(str.length)];}
+
+document.querySelectorAll('#gen-mode button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#gen-mode button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); genMode=b.dataset.mode;
+    if(genMode==='phrase'){ lenLabel.textContent='Words'; lenEl.min=3; lenEl.max=9; if(+lenEl.value>9)lenEl.value=4; if(+lenEl.value<3)lenEl.value=4; charOpts.style.opacity=.35; charOpts.style.pointerEvents='none'; }
+    else { lenLabel.textContent='Length'; lenEl.min=6; lenEl.max=64; if(+lenEl.value<6)lenEl.value=20; charOpts.style.opacity=1; charOpts.style.pointerEvents='auto'; }
+    lenVal.textContent=lenEl.value; generate();
+  });
+});
+document.querySelectorAll('.opt input').forEach(c=>{
+  c.addEventListener('change',()=>{ c.closest('.opt').classList.toggle('checked',c.checked); generate(); });
+});
+lenEl.addEventListener('input',()=>{lenVal.textContent=lenEl.value;generate();});
+
+function generate(){
+  let result='', poolForEntropy=0, words=0;
+  if(genMode==='phrase'){
+    words=+lenEl.value;
+    const arr=[]; for(let i=0;i<words;i++) arr.push(PHRASE_WORDS[randInt(PHRASE_WORDS.length)]);
+    // capitalize + a separator number for a bit more entropy
+    result = arr.map(w=>w[0].toUpperCase()+w.slice(1)).join('-') + '-' + randInt(100);
+    poolForEntropy = words*Math.log2(PHRASE_WORDS.length) + Math.log2(100);
+  } else {
+    let pool='';
+    if(document.getElementById('o-lower').checked) pool+=SETS.lower;
+    if(document.getElementById('o-upper').checked) pool+=SETS.upper;
+    if(document.getElementById('o-num').checked) pool+=SETS.num;
+    if(document.getElementById('o-sym').checked) pool+=SETS.sym;
+    if(document.getElementById('o-amb').checked) pool=pool.replace(AMBIG,'');
+    if(!pool){ out.textContent='pick at least one character set'; document.getElementById('gen-meta').innerHTML=''; return; }
+    const L=+lenEl.value;
+    for(let i=0;i<L;i++) result+=pick(pool);
+    poolForEntropy = L*Math.log2(pool.length);
+  }
+  out.textContent=result;
+  const bits=Math.round(poolForEntropy);
+  const sc=scoreFromEntropy(bits,null);
+  document.getElementById('gen-strength').textContent=SCORE_LABEL[sc];
+  document.getElementById('gen-strength').style.color=SCORE_COLOR[sc];
+  document.getElementById('gen-entropy').textContent=bits;
+}
+document.getElementById('gen-new').addEventListener('click',generate);
+document.getElementById('gen-copy').addEventListener('click',()=>{
+  const txt=out.textContent;
+  if(!txt||txt.includes('pick at least')||txt==='—')return;
+  navigator.clipboard?.writeText(txt).then(()=>{
+    const b=document.getElementById('gen-copy'); const old=b.innerHTML;
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="var(--strong)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg>';
+    setTimeout(()=>b.innerHTML=old,1100);
+  });
+});
+generate();
+
+/* ===================== wordlist check ===================== */
+const wl=document.getElementById('wl-pw'); wireEye('wl-pw','wl-eye');
+const wlRes=document.getElementById('wl-result');
+wl.addEventListener('input',()=>{
+  const v=wl.value;
+  if(!v){ wlRes.className='result-line idle'; wlRes.textContent='— start typing to check'; return; }
+  const low=v.toLowerCase();
+  if(COMMON_SET.has(low)){
+    wlRes.className='result-line hit';
+    wlRes.innerHTML=`⛔ FOUND — appears in the common-password list <span class="rank">#${COMMON_RANK[low]}</span> · cracked on the first pass`;
+  } else {
+    const d=dictionaryHit(v);
+    if(d){ wlRes.className='result-line hit'; wlRes.innerHTML=`⚠ close match — built on the common word "<b>${d.base}</b>". Cracking rules catch this fast.`; }
+    else { wlRes.className='result-line safe'; wlRes.textContent='✓ not in this slice — but check the Analyze tab for true strength'; }
+  }
+});
+
+/* ===================== quiz ===================== */
+const QUIZ=[
+  {q:"Which password is genuinely hardest to crack?", a:["P@ssw0rd!","Tr0ub4dor&3","correct-horse-battery-staple","Summer2024!"], c:2,
+   e:"Four random words give more entropy than a short, heavily-substituted word. Length and unpredictability beat clever swaps."},
+  {q:"What helps a password most against brute force?", a:["Adding a ! at the end","Making it longer","Capitalizing the first letter","Replacing o with 0"], c:1,
+   e:"Each extra character multiplies the search space. Length is the single biggest lever — far bigger than predictable tweaks."},
+  {q:"You reuse one strong password everywhere. The risk?", a:["None, it's strong","One breach exposes every account","It expires faster","Sites can read it"], c:1,
+   e:"Reuse is the real danger. When one site is breached, attackers replay that password everywhere (credential stuffing). Unique per site matters."},
+  {q:"A site forces a change every 30 days. This usually…", a:["Greatly improves security","Leads to weaker, patterned passwords","Stops all breaches","Is required by law"], c:1,
+   e:"Forced frequent rotation tends to push people toward Spring1!, Spring2!… Modern guidance (e.g. NIST) favors long, unique passwords changed only when compromised."},
+  {q:"What's the safest way to store many strong passwords?", a:["A reused master in your head","A password manager","A notes file named passwords","Your browser's autofill on a shared PC"], c:1,
+   e:"A reputable password manager generates and stores unique passwords, so you only remember one strong master."},
+  {q:"'rockyou.txt' is famous because it…", a:["Encrypts passwords","Is a list of real leaked passwords","Is antivirus software","Generates passwords"], c:1,
+   e:"It's a wordlist of millions of passwords from a real breach. Crackers run it first — if your password is on it, length and symbols won't save you."}
+];
+let qi=0, qscore=0, answered=false;
+const qText=document.getElementById('q-text'), qAns=document.getElementById('q-answers'),
+      qExp=document.getElementById('q-explain'), qCount=document.getElementById('q-counter'),
+      qScoreEl=document.getElementById('q-score'), qNext=document.getElementById('q-next');
+const KEYS=['A','B','C','D'];
+
+function renderQ(){
+  answered=false; qNext.disabled=true; qExp.classList.remove('show');
+  const item=QUIZ[qi];
+  qCount.textContent=`Question ${qi+1} / ${QUIZ.length}`;
+  qText.textContent=item.q;
+  qAns.innerHTML='';
+  item.a.forEach((txt,i)=>{
+    const b=document.createElement('button'); b.className='answer';
+    b.innerHTML=`<span class="key">${KEYS[i]}</span>${txt}`;
+    b.addEventListener('click',()=>choose(i,b));
+    qAns.appendChild(b);
+  });
+}
+function choose(i,btn){
+  if(answered)return; answered=true;
+  const item=QUIZ[qi];
+  const btns=[...qAns.children];
+  btns.forEach(b=>b.disabled=true);
+  if(i===item.c){ btn.classList.add('correct'); qscore++; }
+  else { btn.classList.add('wrong'); btns[item.c].classList.add('correct'); }
+  qScoreEl.innerHTML=`score <b>${qscore}</b> / ${qi+1}`;
+  qExp.textContent=item.e; qExp.classList.add('show');
+  qNext.disabled=false;
+  qNext.textContent = qi===QUIZ.length-1 ? 'See result' : 'Next →';
+}
+let quizDone=false;
+function showResult(){
+  quizDone=true;
+  qText.textContent=`You scored ${qscore} / ${QUIZ.length}`;
+  qCount.textContent='Complete';
+  qAns.innerHTML='';
+  const msg = qscore>=5?"Strong instincts — you'd give a cracker a hard time."
+            : qscore>=3?"Decent. Tighten up on length and uniqueness."
+            : "Worth a rethink — longer, unique, manager-stored passwords are the move.";
+  qExp.textContent=msg; qExp.classList.add('show');
+  qNext.textContent='Restart'; qNext.disabled=false;
+}
+qNext.addEventListener('click',()=>{
+  if(quizDone){ quizDone=false; qi=0; qscore=0; qScoreEl.innerHTML='score <b>0</b> / 0'; renderQ(); return; }
+  if(qi<QUIZ.length-1){ qi++; renderQ(); }
+  else showResult();
+});
+renderQ();
+
+/* ===================== password breach check (HIBP k-anonymity) ===================== */
+const pwnedBox=document.getElementById('pwned'), pwnedText=document.getElementById('pwned-text');
+let pwnedTimer=null, pwnedToken=0;
+
+async function sha1Hex(str){
+  const data=new TextEncoder().encode(str);
+  const buf=await crypto.subtle.digest('SHA-1', data);
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function setPwned(state, html){
+  pwnedBox.className='pwned'+(state?' '+state:'');
+  pwnedText.innerHTML=html;
+}
+async function checkPwned(value){
+  const token=++pwnedToken;
+  if(!value){ setPwned('', "Breach check runs as you type — only the first 5 characters of your password's hash are sent."); return; }
+  if(!(window.crypto && crypto.subtle)){
+    setPwned('', "Breach check needs the hosted (https) version — it's disabled when opening the file directly.");
+    return;
+  }
+  setPwned('checking', 'Checking against breached-password lists…');
+  try{
+    const hash=await sha1Hex(value);
+    const prefix=hash.slice(0,5), suffix=hash.slice(5);
+    const res=await fetch('https://api.pwnedpasswords.com/range/'+prefix);
+    if(!res.ok) throw new Error('http '+res.status);
+    const body=await res.text();
+    if(token!==pwnedToken) return; // stale
+    let count=0;
+    for(const line of body.split('\n')){
+      const [suf,c]=line.trim().split(':');
+      if(suf===suffix){ count=parseInt(c,10)||0; break; }
+    }
+    if(token!==pwnedToken) return;
+    if(count>0) setPwned('bad', `⛔ Found in <b>${count.toLocaleString()}</b> known breaches. This exact password is already in attackers' lists — don't use it anywhere.`);
+    else setPwned('safe', "✓ Not found in any known breach corpus. (That's good — but it doesn't prove the password is strong; check the score above.)");
+  }catch(e){
+    if(token!==pwnedToken) return;
+    setPwned('', "Couldn't reach the breach database just now — your strength score above is unaffected.");
+  }
+}
+pw.addEventListener('input',()=>{
+  clearTimeout(pwnedTimer);
+  const v=pw.value;
+  if(!v){ checkPwned(''); return; }
+  pwnedTimer=setTimeout(()=>checkPwned(v), 500);
+});
+
+/* ===================== email breach scan (XposedOrNot) ===================== */
+const bmail=document.getElementById('bmail'), bscan=document.getElementById('bscan'), bresult=document.getElementById('bresult');
+
+// email eye: starts visible, toggles to masked dots
+(function(){
+  const btn=document.getElementById('bmail-eye'); btn.innerHTML=EYE_OFF;
+  btn.addEventListener('click',()=>{
+    const masked = bmail.type==='password';
+    bmail.type = masked ? 'email':'password';
+    btn.innerHTML = masked ? EYE_OFF : EYE;
+    btn.setAttribute('aria-label', masked ? 'Hide email':'Show email');
+    bmail.focus();
+  });
+})();
+
+function maskEmail(e){
+  const at=e.lastIndexOf('@'); if(at<1) return e;
+  let local=e.slice(0,at), domain=e.slice(at+1);
+  const ml = local.length<=2 ? local[0]+'•' : local.slice(0,2)+'•'.repeat(Math.max(2,local.length-2));
+  const dot=domain.lastIndexOf('.'); 
+  let dname=dot>0?domain.slice(0,dot):domain, tld=dot>0?domain.slice(dot):'';
+  const md = dname.length<=1 ? dname+'•' : dname[0]+'•'.repeat(Math.max(2,dname.length-1));
+  return ml+'@'+md+tld;
+}
+const RISK_TXT={plaintext:'stored in plain text',easytocrack:'stored with weak hashing (easy to crack)',hardtocrack:'stored with strong hashing',unknown:'storage method unknown'};
+function svgIcon(kind){
+  if(kind==='clear') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
+}
+
+async function runEmailScan(){
+  const email=(bmail.value||'').trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    bresult.innerHTML='<div class="b-err">That doesn\'t look like a complete email address — check and try again.</div>';
+    return;
+  }
+  bscan.disabled=true;
+  bresult.innerHTML='<div class="b-loading"><span class="sp"></span>Querying the breach database…</div>';
+  try{
+    const res=await fetch('https://api.xposedornot.com/v1/breach-analytics?email='+encodeURIComponent(email));
+    const data=await res.json();
+    const details = data && data.ExposedBreaches && Array.isArray(data.ExposedBreaches.breaches_details)
+                    ? data.ExposedBreaches.breaches_details : [];
+    const masked=maskEmail(email);
+
+    if(!details.length){
+      bresult.innerHTML=`<div class="b-banner clear">${svgIcon('clear')}
+        <div><div class="bt">No breaches found</div><div class="bs"><span class="em">${masked}</span> isn't in the breaches this database has collected. Stay cautious — no tool sees every leak.</div></div></div>`;
+      return;
+    }
+
+    // stats
+    const totalRecords=details.reduce((s,b)=>s+(+b.xposed_records||0),0);
+    const pwBreaches=details.filter(b=>/password/i.test(b.xposed_data||''));
+    let riskLabel='—';
+    try{ riskLabel=data.BreachMetrics.risk[0].risk_label||'—'; }catch(e){}
+
+    const fmtNum=n=> n>=1e6 ? (n/1e6).toFixed(n>=1e7?0:1)+'M' : n>=1e3 ? (n/1e3).toFixed(0)+'k' : ''+n;
+
+    let html=`<div class="b-banner hit">${svgIcon('hit')}
+      <div><div class="bt">Found in ${details.length} breach${details.length>1?'es':''}</div>
+      <div class="bs"><span class="em">${masked}</span> shows up in known data leaks. Change the password anywhere you reused it, and turn on 2-factor where you can.</div></div></div>`;
+
+    html+=`<div class="b-stats">
+      <div class="b-stat"><div class="n" style="color:var(--weak)">${details.length}</div><div class="l">breaches it's in</div></div>
+      <div class="b-stat"><div class="n">${fmtNum(totalRecords)}</div><div class="l">records leaked total</div></div>
+      <div class="b-stat"><div class="n" style="color:${pwBreaches.length?'var(--weak)':'var(--good)'}">${pwBreaches.length}</div><div class="l">leaked your password</div></div>
+      <div class="b-stat"><div class="n">${riskLabel}</div><div class="l">exposure risk</div></div>
+    </div>`;
+
+    html+=`<div class="b-sub">Where it turned up</div><div class="b-list">`;
+    details.sort((a,b)=>(+b.xposed_records||0)-(+a.xposed_records||0));
+    for(const b of details){
+      const dataTypes=(b.xposed_data||'').split(';').map(s=>s.trim()).filter(Boolean);
+      const hasPw=/password/i.test(b.xposed_data||'');
+      const tags=dataTypes.map(t=>`<span class="b-tag${/password/i.test(t)?' pw':''}">${t}</span>`).join('');
+      const recs=(+b.xposed_records||0).toLocaleString();
+      html+=`<div class="b-card">
+        <div class="top">
+          <span class="name">${b.breach||'Unknown'}</span>
+          <span class="meta">${b.xposed_date||'—'} · ${recs} records${b.industry?' · '+b.industry:''}</span>
+        </div>
+        ${b.details?`<p class="desc">${b.details}</p>`:''}
+        ${tags?`<div class="b-tags">${tags}</div>`:''}
+        ${hasPw?`<div class="b-pwflag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Password exposed here — ${RISK_TXT[(b.password_risk||'unknown').toLowerCase()]||'storage method unknown'}.</div>`:''}
+      </div>`;
+    }
+    html+=`</div>`;
+    bresult.innerHTML=html;
+  }catch(e){
+    bresult.innerHTML='<div class="b-err">Couldn\'t reach the breach service — it may be rate-limited or temporarily unavailable, or your network blocked the request. Wait a moment and try again. (Your email was not stored anywhere.)</div>';
+  }finally{
+    bscan.disabled=false;
+  }
+}
+bscan.addEventListener('click',runEmailScan);
+bmail.addEventListener('keydown',e=>{ if(e.key==='Enter') runEmailScan(); });
+</script>
+</body>
+</html>
